@@ -1,14 +1,19 @@
 package controllers.data;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 public class Triple {
     public String subject;
     public String predicate;
     public String object;
 
-    public void init(String subject, String predicate, String object) {
-        this.subject = subject;
-        this.predicate = predicate;
-        this.object = object;
+    public Triple decode() throws UnsupportedEncodingException {
+        this.subject = URLDecoder.decode(this.subject, "UTF-8");;
+        this.predicate = URLDecoder.decode(this.predicate, "UTF-8");
+        this.object = URLDecoder.decode(this.object, "UTF-8");
+
+        return this;
     }
 
     @Override

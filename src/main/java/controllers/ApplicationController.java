@@ -21,37 +21,34 @@ import com.google.inject.Singleton;
 import controllers.data.Request;
 import controllers.data.Triple;
 import models.TripleCorrupter;
-import models.TripleCorrupterType;
-import ninja.Context;
 import ninja.Result;
 import ninja.Results;
-import ninja.utils.NinjaProperties;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 @Singleton
 public class ApplicationController {
-    private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     @Inject
     private TripleCorrupter tripleCorrupter;
 
-    public Result corrupted(Request request, Context context) {
-        executorService.execute(() -> {
-            List<List<Triple>> corruptedTriples = request.triples.stream().
-                    map(triple -> tripleCorrupter.corrupt(triple, TripleCorrupter.EntityType.valueOf(request.entity), request.size)).
-                    collect(Collectors.toList());
-            context.returnResultAsync(Results.json().render(corruptedTriples));
-        });
+    public Result corrupted(Request request) {
 
-        return Results.async();
+        List<List<Triple>> corruptedTriples = request.triples.stream().
+                    map(triple -> {
+                        try {
+                            return tripleCorrupter.corrupt(
+                                    triple.decode(),
+                                    TripleCorrupter.EntityType.valueOf(request.entity),
+                                    request.size);
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    }).
+                    collect(Collectors.toList());
+        return Results.json().render(corruptedTriples);
     }
 
     public Result index() {

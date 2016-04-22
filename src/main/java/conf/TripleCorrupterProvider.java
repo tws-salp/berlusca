@@ -21,7 +21,6 @@ public class TripleCorrupterProvider implements Provider<TripleCorrupter> {
     @Override
     public TripleCorrupter get() {
         try {
-            System.out.println("STO CREANDOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
             return TripleCorrupter.create(new File(properties.get("application.ontology_filename")),
                     TripleCorrupterType.valueOf(properties.get("application.corrupter_id")));
         } catch (OWLOntologyCreationException e) {
