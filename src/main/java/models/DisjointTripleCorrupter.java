@@ -50,13 +50,13 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
         List<Triple> triples = new ArrayList<>();
 
         for (int i = 0; i < numCorrupted; i++) {
-            triples.add(getCorruptedTriple(triple, randomTripleGenerator.nextBoolean()));
+            triples.add(generateCorruptedTriple(triple, randomTripleGenerator.nextBoolean()));
         }
 
         return triples;
     }
 
-    private Triple getCorruptedTriple(Triple triple, boolean corruptSubject) {
+    private Triple generateCorruptedTriple(Triple triple, boolean corruptSubject) {
         OWLNamedIndividual iriIndividual = (corruptSubject) ?
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
@@ -88,6 +88,34 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
                 }
             }
 
+        }
+
+        return (corruptedTriple == null) ? generateRandomTriple(triple, iriIndividual, corruptSubject) : corruptedTriple;
+    }
+
+    private Triple generateRandomTriple(Triple triple, OWLNamedIndividual iriIndividual, boolean corruptSubject) {
+        Triple corruptedTriple = new Triple();
+        List<OWLNamedIndividual> ontologyIndividuals = new ArrayList<>(individualsClasses.keySet());
+
+        if (corruptSubject) {
+
+            OWLNamedIndividual corruptedEntity;
+            do {
+                corruptedEntity = ontologyIndividuals.get(randomEntityGenerator.nextInt(ontologyIndividuals.size()));
+            } while (corruptedEntity.equals(iriIndividual));
+
+            corruptedTriple.subject = corruptedEntity.getIRI().toString();
+            corruptedTriple.predicate = triple.predicate;
+            corruptedTriple.object = triple.object;
+        } else {
+            OWLNamedIndividual corruptedEntity;
+            do {
+                corruptedEntity = ontologyIndividuals.get(randomEntityGenerator.nextInt(ontologyIndividuals.size()));
+            } while (corruptedEntity.equals(iriIndividual));
+
+            corruptedTriple.subject = triple.subject;
+            corruptedTriple.predicate = triple.predicate;
+            corruptedTriple.object = corruptedEntity.getIRI().toString();
         }
 
         return corruptedTriple;
