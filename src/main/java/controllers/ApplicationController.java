@@ -35,7 +35,7 @@ public class ApplicationController {
     private TripleCorrupter tripleCorrupter;
     private final Logger logger = Logger.getLogger(ApplicationController.class.getName());
 
-    public Result getCorruptedTriples(Request request) {
+    public Result corrupted(Request request) {
         logger.info("-- Request data");
         logger.info(request.toString());
 
