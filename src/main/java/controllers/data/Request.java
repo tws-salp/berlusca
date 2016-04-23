@@ -8,9 +8,18 @@ public class Request {
 
     @Override
     public String toString() {
-        return "Request{" +
-                "triples=" + triples +
-                ", size=" + size +
-                '}';
+        StringBuilder builder = new StringBuilder("");
+
+        builder.append("Number of corrupted triples: ").append(size).append("\n");
+        builder.append("Triples: ").append("\n");
+
+        for (Triple t : triples) {
+            builder.append("\t").append(t.subject).append("\n");
+            builder.append("\t").append(t.predicate).append("\n");
+            builder.append("\t").append(t.object).append("\n");
+            builder.append("\n");
+        }
+
+        return builder.toString();
     }
 }

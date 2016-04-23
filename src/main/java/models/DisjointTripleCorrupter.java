@@ -10,11 +10,15 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import uk.ac.manchester.cs.owl.owlapi.OWLNamedIndividualImpl;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class DisjointTripleCorrupter extends TripleCorrupter {
-    private final Random randomGenerator;
+    private final Random randomEntityGenerator;
+    private final Random randomTripleGenerator;
     // Maps individuals to most specific classes
     private Multimap<OWLNamedIndividual, OWLClass> individualsClasses;
 
@@ -29,8 +33,8 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
     DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException {
         super(ontologyFile);
 
-        this.randomGenerator = new Random(RANDOM_SEED);
-
+        this.randomEntityGenerator = new Random(RANDOM_SEED);
+        this.randomTripleGenerator = new Random(RANDOM_SEED);
         logger.info("-- Building individuals to classes index");
         buildIndividualsClasses();
 
@@ -46,7 +50,7 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
         List<Triple> triples = new ArrayList<>();
 
         for (int i = 0; i < numCorrupted; i++) {
-            triples.add(getCorruptedTriple(triple, randomGenerator.nextBoolean()));
+            triples.add(getCorruptedTriple(triple, randomTripleGenerator.nextBoolean()));
         }
 
         return triples;
@@ -60,7 +64,7 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
         Collection<OWLClass> iriClasses = individualsClasses.get(iriIndividual);
 
         if (iriClasses != null) {
-            Set<OWLNamedIndividual> notIriIndividuals = new HashSet<>();
+            List<OWLNamedIndividual> notIriIndividuals = new ArrayList<>();
             for (OWLClass iriClass : iriClasses) {
                 Collection<OWLClass> notIriClasses = disjointClasses.get(iriClass);
 
@@ -69,17 +73,19 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
                 }
             }
 
-
-            OWLNamedIndividual corruptedEntity = notIriIndividuals.iterator().next();
-            corruptedTriple = new Triple();
-            if (corruptSubject) {
-                corruptedTriple.subject = corruptedEntity.getIRI().toString();
-                corruptedTriple.predicate = triple.predicate;
-                corruptedTriple.object = triple.object;
-            } else {
-                corruptedTriple.subject = triple.subject;
-                corruptedTriple.predicate = triple.predicate;
-                corruptedTriple.object = corruptedEntity.getIRI().toString();
+            if (!notIriIndividuals.isEmpty()) {
+                OWLNamedIndividual corruptedEntity = notIriIndividuals.get(
+                        randomEntityGenerator.nextInt(notIriIndividuals.size()));
+                corruptedTriple = new Triple();
+                if (corruptSubject) {
+                    corruptedTriple.subject = corruptedEntity.getIRI().toString();
+                    corruptedTriple.predicate = triple.predicate;
+                    corruptedTriple.object = triple.object;
+                } else {
+                    corruptedTriple.subject = triple.subject;
+                    corruptedTriple.predicate = triple.predicate;
+                    corruptedTriple.object = corruptedEntity.getIRI().toString();
+                }
             }
 
         }
