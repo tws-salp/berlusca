@@ -4,13 +4,13 @@ import java.util.List;
 
 public class Request {
     public List<Triple> triples;
-    public int numCorrupted;
+    public int size;
 
     @Override
     public String toString() {
         return "Request{" +
                 "triples=" + triples +
-                ", numCorrupted=" + numCorrupted +
+                ", size=" + size +
                 '}';
     }
 }

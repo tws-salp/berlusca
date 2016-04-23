@@ -1,7 +1,7 @@
 <configuration>
 
   <!-- Uncomment to enable file-based logging with 
-       daily (or numCorrupted exceeding) gzip archival.
+       daily (or size exceeding) gzip archival.
        Also uncomment the "ROLLING" reference in <root>.
   <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>mylog.log</file>

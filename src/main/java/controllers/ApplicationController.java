@@ -44,7 +44,7 @@ public class ApplicationController {
                         try {
                             return tripleCorrupter.corrupt(
                                     triple.decode(),
-                                    request.numCorrupted);
+                                    request.size);
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                             return null;
