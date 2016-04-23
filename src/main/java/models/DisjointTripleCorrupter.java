@@ -44,17 +44,24 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
     @Override
     public List<Triple> corrupt(Triple triple, int numCorrupted) {
         List<Triple> triples = new ArrayList<>();
-        boolean corruptedSubject = randomGenerator.nextBoolean();
 
-        OWLNamedIndividual iriIndividual = (corruptedSubject) ?
+        for (int i = 0; i < numCorrupted; i++) {
+            triples.add(getCorruptedTriple(triple, randomGenerator.nextBoolean()));
+        }
+
+        return triples;
+    }
+
+    private Triple getCorruptedTriple(Triple triple, boolean corruptSubject) {
+        OWLNamedIndividual iriIndividual = (corruptSubject) ?
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
-
+        Triple corruptedTriple = null;
         Collection<OWLClass> iriClasses = individualsClasses.get(iriIndividual);
 
         if (iriClasses != null) {
             Set<OWLNamedIndividual> notIriIndividuals = new HashSet<>();
-            for(OWLClass iriClass: iriClasses) {
+            for (OWLClass iriClass : iriClasses) {
                 Collection<OWLClass> notIriClasses = disjointClasses.get(iriClass);
 
                 for (OWLClass currentClass : notIriClasses) {
@@ -62,30 +69,22 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
                 }
             }
 
-            notIriIndividuals.stream().
-                    limit(numCorrupted).
-                    forEach(i -> {
-                        Triple t = new Triple();
-                        if (corruptedSubject) {
-                            t.subject = i.getIRI().toString();
-                            t.predicate = triple.predicate;
-                            t.object = triple.object;
-                        } else {
-                            t.subject = triple.subject;
-                            t.predicate = triple.predicate;
-                            t.object = i.getIRI().toString();
-                        }
-                        triples.add(t);
-                    });
+
+            OWLNamedIndividual corruptedEntity = notIriIndividuals.iterator().next();
+            corruptedTriple = new Triple();
+            if (corruptSubject) {
+                corruptedTriple.subject = corruptedEntity.getIRI().toString();
+                corruptedTriple.predicate = triple.predicate;
+                corruptedTriple.object = triple.object;
+            } else {
+                corruptedTriple.subject = triple.subject;
+                corruptedTriple.predicate = triple.predicate;
+                corruptedTriple.object = corruptedEntity.getIRI().toString();
+            }
+
         }
 
-        return triples;
-    }
-
-    private boolean throwCoin(int seed) {
-
-
-        return randomGenerator.nextDouble() > 0.5;
+        return corruptedTriple;
     }
 
     private void buildIndividualsClasses() {
