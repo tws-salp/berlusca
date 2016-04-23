@@ -1,6 +1,5 @@
 package models;
 
-import controllers.ApplicationController;
 import controllers.data.Triple;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public abstract class TripleCorrupter {
-    public enum EntityType {SUBJECT, OBJECT};
     protected OWLOntology ontology;
     protected OWLReasoner reasoner;
     protected final Logger logger = Logger.getLogger(TripleCorrupter.class.getName());
@@ -31,7 +29,7 @@ public abstract class TripleCorrupter {
         reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
     }
 
-    public abstract List<Triple> corrupt(Triple triple, EntityType entityType, int size);
+    public abstract List<Triple> corrupt(Triple triple, int numCorrupted);
 
     public static TripleCorrupter create(File ontologyFile, TripleCorrupterType tripleCorrupterType) throws OWLOntologyCreationException {
         switch (tripleCorrupterType) {

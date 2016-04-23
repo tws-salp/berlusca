@@ -23,6 +23,8 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
     // Maps classes to disjoint classes
     private Multimap<OWLClass, OWLClass> disjointClasses;
 
+    private final int RANDOM_SEED = 12345;
+
     DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException {
         super(ontologyFile);
 
@@ -37,9 +39,11 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
     }
 
     @Override
-    public List<Triple> corrupt(Triple triple, EntityType entityType, int size) {
+    public List<Triple> corrupt(Triple triple, int numCorrupted) {
         List<Triple> triples = new ArrayList<>();
-        OWLNamedIndividual iriIndividual = (entityType.equals(EntityType.SUBJECT)) ?
+        boolean corruptedSubject = throwCoin(RANDOM_SEED);
+
+        OWLNamedIndividual iriIndividual = (corruptedSubject) ?
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
 
@@ -56,10 +60,10 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
             }
 
             notIriIndividuals.stream().
-                    limit(size).
+                    limit(numCorrupted).
                     forEach(i -> {
                         Triple t = new Triple();
-                        if (entityType.equals(EntityType.SUBJECT)) {
+                        if (corruptedSubject) {
                             t.subject = i.getIRI().toString();
                             t.predicate = triple.predicate;
                             t.object = triple.object;
@@ -73,6 +77,12 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
         }
 
         return triples;
+    }
+
+    private boolean throwCoin(int seed) {
+        Random randomGenerator = new Random(seed);
+
+        return randomGenerator.nextDouble() > 0.5;
     }
 
     private void buildIndividualsClasses() {
@@ -101,21 +111,4 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
         }
     }
 
-    public static void main(String [] args) throws OWLOntologyCreationException {
-        TripleCorrupter tripleCorrupter = new DisjointTripleCorrupter(new File("filtered_wn31.owl"));
-
-        Triple triple = new Triple();
-        triple.subject = "http://lemon-model.net/lexica/uby/wn/WN_Sense_100036";
-        triple.predicate = "https://www.w3.org/2002/07/owl/sameAs";
-        triple.object = "http://wordnet-rdf.princeton.edu/wn31/blood-red-s#1-s";
-
-        System.out.println("-- Corrupting triples");
-        long startTime = System.nanoTime();
-
-        System.out.println(tripleCorrupter.corrupt(triple, EntityType.SUBJECT, 10));
-
-        long endTime = System.nanoTime();
-        double difference = (endTime - startTime) / 1e9;
-        System.out.println("-- Time: " + difference);
-    }
 }

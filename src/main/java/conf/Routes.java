@@ -27,7 +27,7 @@ public class Routes implements ApplicationRoutes {
     @Override
     public void init(Router router) {
         router.GET().route("/").with(ApplicationController.class, "index");
-        router.POST().route("/corrupted").with(ApplicationController.class, "corrupted");
+        router.POST().route("/getCorruptedTriples").with(ApplicationController.class, "getCorruptedTriples");
 
         ///////////////////////////////////////////////////////////////////////
         // Assets (pictures / javascript)

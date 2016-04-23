@@ -35,7 +35,7 @@ public class ApplicationController {
     private TripleCorrupter tripleCorrupter;
     private final Logger logger = Logger.getLogger(ApplicationController.class.getName());
 
-    public Result corrupted(Request request) {
+    public Result getCorruptedTriples(Request request) {
         logger.info("-- Request data");
         logger.info(request.toString());
 
@@ -44,8 +44,7 @@ public class ApplicationController {
                         try {
                             return tripleCorrupter.corrupt(
                                     triple.decode(),
-                                    TripleCorrupter.EntityType.valueOf(request.entity),
-                                    request.size);
+                                    request.numCorrupted);
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                             return null;
