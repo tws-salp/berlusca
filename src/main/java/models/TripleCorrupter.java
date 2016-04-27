@@ -1,6 +1,5 @@
 package models;
 
-import controllers.ApplicationController;
 import controllers.data.Triple;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
