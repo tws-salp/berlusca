@@ -128,7 +128,7 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
 
     // -log (length / (2 * D))
     private double computeLeacockChodorow(OWLClass a, OWLClass b, Map<OWLClass, Map<OWLClass, Integer>> nodeDistances) {
-        return -Math.log(nodeDistances.get(a).get(b) / (2 * hierarchyDepth));
+        return -Math.log10(nodeDistances.get(a).get(b) / (2 * hierarchyDepth));
     }
 
     private Graph<OWLClass, DefaultEdge> buildConceptHierarchy() throws IOException {
