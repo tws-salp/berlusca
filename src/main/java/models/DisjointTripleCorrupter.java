@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class DisjointTripleCorrupter extends TripleCorrupter {
     private final Random randomEntityGenerator;
-    private final Random randomTripleGenerator;
+
     // Maps individuals to most specific classes
     private Multimap<OWLNamedIndividual, OWLClass> individualsClasses;
 
@@ -28,13 +28,11 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
     // Maps classes to disjoint classes
     private Multimap<OWLClass, OWLClass> disjointClasses;
 
-    private final int RANDOM_SEED = 12345;
 
     DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException {
         super(ontologyFile);
 
         this.randomEntityGenerator = new Random(RANDOM_SEED);
-        this.randomTripleGenerator = new Random(RANDOM_SEED);
         logger.info("-- Building individuals to classes index");
         buildIndividualsClasses();
 
@@ -45,18 +43,7 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
         buildDisjointClasses();
     }
 
-    @Override
-    public List<Triple> corrupt(Triple triple, int numCorrupted) {
-        List<Triple> triples = new ArrayList<>();
-
-        for (int i = 0; i < numCorrupted; i++) {
-            triples.add(generateCorruptedTriple(triple, randomTripleGenerator.nextBoolean()));
-        }
-
-        return triples;
-    }
-
-    private Triple generateCorruptedTriple(Triple triple, boolean corruptSubject) {
+    protected Triple corrupt(Triple triple, boolean corruptSubject) {
         OWLNamedIndividual iriIndividual = (corruptSubject) ?
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
