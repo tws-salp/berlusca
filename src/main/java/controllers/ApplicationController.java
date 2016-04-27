@@ -26,21 +26,24 @@ import ninja.Results;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Singleton
 public class ApplicationController {
     @Inject
     private TripleCorrupter tripleCorrupter;
+    private final Logger logger = Logger.getLogger(ApplicationController.class.getName());
 
     public Result corrupted(Request request) {
+        logger.info("-- Request data");
+        logger.info(request.toString());
 
         List<List<Triple>> corruptedTriples = request.triples.stream().
                     map(triple -> {
                         try {
                             return tripleCorrupter.corrupt(
                                     triple.decode(),
-                                    TripleCorrupter.EntityType.valueOf(request.entity),
                                     request.size);
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
