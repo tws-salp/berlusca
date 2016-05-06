@@ -1,5 +1,6 @@
 package models;
 
 public enum TripleCorrupterType {
-    DISJOINT
+    DISJOINT,
+    SIMILARITY
 }

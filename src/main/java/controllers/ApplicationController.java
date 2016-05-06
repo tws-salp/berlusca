@@ -36,8 +36,7 @@ public class ApplicationController {
     private final Logger logger = Logger.getLogger(ApplicationController.class.getName());
 
     public Result corrupted(Request request) {
-        logger.info("-- Request data");
-        logger.info(request.toString());
+        logger.info("-- Received new request");
 
         List<List<Triple>> corruptedTriples = request.triples.stream().
                     map(triple -> {

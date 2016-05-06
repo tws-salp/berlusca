@@ -8,6 +8,7 @@ import ninja.utils.NinjaProperties;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import java.io.File;
+import java.io.IOException;
 
 public class TripleCorrupterProvider implements Provider<TripleCorrupter> {
 
@@ -23,7 +24,7 @@ public class TripleCorrupterProvider implements Provider<TripleCorrupter> {
         try {
             return TripleCorrupter.create(new File(properties.get("application.ontology_filename")),
                     TripleCorrupterType.valueOf(properties.get("application.corrupter_id")));
-        } catch (OWLOntologyCreationException e) {
+        } catch (OWLOntologyCreationException | IOException e) {
             e.printStackTrace();
         }
 

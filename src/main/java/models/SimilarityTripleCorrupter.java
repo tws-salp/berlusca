@@ -65,7 +65,7 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         OWLNamedIndividual iriIndividual = (corruptSubject) ?
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
-        Triple corruptedTriple = null;
+        Triple corruptedTriple;
         OWLClass individualClass = reasoner.getTypes(iriIndividual, true).getFlattened().iterator().next(),
                 mostDistantClass = null;
 
@@ -126,7 +126,7 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         return rootDistances.values().stream().max(Integer::compareTo).get();
     }
 
-    // -log (length / (2 * D))
+    // Leacock-Chodorow distance = -log (path_length / (2 * D))
     private double computeLeacockChodorow(OWLClass a, OWLClass b, Map<OWLClass, Map<OWLClass, Integer>> nodeDistances) {
         return -Math.log10(nodeDistances.get(a).get(b) / (2 * hierarchyDepth));
     }
@@ -138,6 +138,7 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         OWLClass topNode = reasoner.getTopClassNode().getRepresentativeElement();
         classQueue.add(topNode);
         Set<OWLClass> visitedClasses = new HashSet<>();
+
         while (!classQueue.isEmpty()) {
             OWLClass currentClass = classQueue.poll();
             if (!currentClass.isOWLNothing()) {
@@ -165,36 +166,10 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         return conceptHierarchy;
     }
 
-    public void saveConceptHierarchy(File graphFile) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(graphFile), StandardCharsets.UTF_8))) {
-            writer.print("digraph FS {");
-
-            for (OWLClass src : conceptHierarchy.vertexSet()) {
-                for (OWLClass dst : conceptHierarchy.vertexSet()) {
-                    if (conceptHierarchy.getEdge(src, dst) != null) {
-                        writer.printf("\"%s\" -> \"%s\";",
-                                src,
-                                dst);
-                        writer.append(System.getProperty("line.separator"));
-                    }
-                }
-            }
-
-            writer.print("}");
-        }
-    }
-
     private void buildClassesIndividuals() {
         classesIndividuals = HashMultimap.create();
         for (OWLClass owlClass : ontology.getClassesInSignature()) {
             classesIndividuals.putAll(owlClass, reasoner.getInstances(owlClass, false).getFlattened());
         }
-    }
-
-
-    public static void main(String[] args) throws OWLOntologyCreationException, IOException {
-        SimilarityTripleCorrupter tripleCorrupter = new SimilarityTripleCorrupter(new File("wine.rdf"));
-        tripleCorrupter.saveConceptHierarchy(new File("conceptHierarchy.dot"));
-
     }
 }

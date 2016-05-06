@@ -9,6 +9,7 @@ import org.semanticweb.owlapi.reasoner.*;
 import uk.ac.manchester.cs.jfact.JFactFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -20,6 +21,7 @@ public abstract class TripleCorrupter {
     protected final Random randomTripleGenerator;
     protected final Logger logger = Logger.getLogger(TripleCorrupter.class.getName());
     protected final int RANDOM_SEED = 12345;
+
     public TripleCorrupter(File ontologyFile) throws OWLOntologyCreationException {
         logger.info("-- Loading ontology: " + ontologyFile.getAbsolutePath());
         ontology = OWLManager.createOWLOntologyManager().loadOntology(
@@ -45,11 +47,13 @@ public abstract class TripleCorrupter {
 
     protected abstract Triple corrupt(Triple triple, boolean corruptSubject);
 
-    public static TripleCorrupter create(File ontologyFile, TripleCorrupterType tripleCorrupterType) throws OWLOntologyCreationException {
+    public static TripleCorrupter create(File ontologyFile, TripleCorrupterType tripleCorrupterType)
+            throws OWLOntologyCreationException, IOException {
         switch (tripleCorrupterType) {
             case DISJOINT:
                 return new DisjointTripleCorrupter(ontologyFile);
-
+            case SIMILARITY:
+                return new SimilarityTripleCorrupter(ontologyFile);
             default:
                 throw new IllegalArgumentException("Invalid triple corrupter type!");
         }
