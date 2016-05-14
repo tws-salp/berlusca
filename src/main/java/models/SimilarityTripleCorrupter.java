@@ -7,7 +7,7 @@ import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.FloydWarshallShortestPaths;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleDirectedGraph;
+import org.jgrapht.graph.SimpleGraph;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
@@ -16,7 +16,6 @@ import org.semanticweb.owlapi.reasoner.NodeSet;
 import uk.ac.manchester.cs.owl.owlapi.OWLNamedIndividualImpl;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class SimilarityTripleCorrupter extends TripleCorrupter {
@@ -33,31 +32,31 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         this.conceptHierarchy = buildConceptHierarchy();
         Map<OWLClass, Map<OWLClass, Integer>> nodeDistances = computeNodeDistances();
         this.hierarchyDepth = computeHierarchyDepth(nodeDistances);
-        this.nodesLCDistances = computeLeacockChodorowDistances(nodeDistances);
+        this.nodesLCDistances = computeLeacockChodorowSimilarities(nodeDistances);
 
         logger.info("-- Building classes to individuals index");
         buildClassesIndividuals();
 
     }
 
-    private Map<OWLClass, Map<OWLClass, Double>> computeLeacockChodorowDistances(
+    private Map<OWLClass, Map<OWLClass, Double>> computeLeacockChodorowSimilarities(
             Map<OWLClass, Map<OWLClass, Integer>> nodeDistances) {
-        Map<OWLClass, Map<OWLClass, Double>> lcDistances = new HashMap<>();
+        Map<OWLClass, Map<OWLClass, Double>> lcSimilarities = new HashMap<>();
 
         for (OWLClass c1 : nodeDistances.keySet()) {
             Map<OWLClass, Integer> c1Distances = nodeDistances.get(c1);
-            Map<OWLClass, Double> c1LCDistances = lcDistances.get(c1);
-            if (c1LCDistances == null) {
-                c1LCDistances = new HashMap<>();
-                lcDistances.put(c1, c1LCDistances);
+            Map<OWLClass, Double> c1LCSimilarities = lcSimilarities.get(c1);
+            if (c1LCSimilarities == null) {
+                c1LCSimilarities = new HashMap<>();
+                lcSimilarities.put(c1, c1LCSimilarities);
             }
 
             for (OWLClass c2 : c1Distances.keySet()) {
-                c1LCDistances.put(c2, computeLeacockChodorow(c1, c2, nodeDistances));
+                c1LCSimilarities.put(c2, computeLeacockChodorow(c1, c2, nodeDistances));
             }
         }
 
-        return lcDistances;
+        return lcSimilarities;
     }
 
     @Override
@@ -66,22 +65,26 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
         Triple corruptedTriple;
-        OWLClass individualClass = reasoner.getTypes(iriIndividual, true).getFlattened().iterator().next(),
-                mostDistantClass = null;
+        OWLClass individualClass = null,
+                nearestClass = null;
 
-        Map<OWLClass, Double> individualDistances = nodesLCDistances.get(individualClass);
+        for (OWLClass owlClass : reasoner.getTypes(iriIndividual, true).getFlattened()) {
+            individualClass = owlClass;
+        }
 
-        for (OWLClass c : individualDistances.keySet()) {
-            if (mostDistantClass != null) {
-                if (individualDistances.get(mostDistantClass) < individualDistances.get(c)) {
-                    mostDistantClass = c;
+        Map<OWLClass, Double> individualSimilarities = nodesLCDistances.get(individualClass);
+
+        for (OWLClass c : individualSimilarities.keySet()) {
+            if (nearestClass != null) {
+                if (individualSimilarities.get(nearestClass) > individualSimilarities.get(c)) {
+                    nearestClass = c;
                 }
             } else {
-                mostDistantClass = c;
+                nearestClass = c;
             }
         }
 
-        List<OWLNamedIndividual> corruptedIndividuals = new ArrayList<>(classesIndividuals.get(mostDistantClass));
+        List<OWLNamedIndividual> corruptedIndividuals = new ArrayList<>(classesIndividuals.get(nearestClass));
 
         OWLNamedIndividual corruptedEntity = corruptedIndividuals.get(
                 randomEntityGenerator.nextInt(corruptedIndividuals.size()));
@@ -105,15 +108,22 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         FloydWarshallShortestPaths<OWLClass, DefaultEdge> floydAlgorithm = new FloydWarshallShortestPaths<>(conceptHierarchy);
 
         for (GraphPath<OWLClass, DefaultEdge> path : floydAlgorithm.getShortestPaths()) {
-            OWLClass currentClass = path.getStartVertex();
-            Map<OWLClass, Integer> classDistances = distances.get(currentClass);
+            OWLClass startVertex = path.getStartVertex(),
+                    endVertex = path.getEndVertex();
+            Map<OWLClass, Integer> startDistances = distances.get(startVertex),
+                    endDistances = distances.get(endVertex);
 
-            if (classDistances == null) {
-                classDistances = new HashMap<>();
-                distances.put(currentClass, classDistances);
+            if (startDistances == null) {
+                startDistances = new HashMap<>();
+                distances.put(startVertex, startDistances);
             }
+            startDistances.put(path.getEndVertex(), path.getEdgeList().size());
 
-            classDistances.put(path.getEndVertex(), path.getEdgeList().size());
+            if (endDistances == null) {
+                endDistances = new HashMap<>();
+                distances.put(endVertex, endDistances);
+            }
+            endDistances.put(path.getStartVertex(), path.getEdgeList().size());
         }
 
         return distances;
@@ -126,14 +136,14 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         return rootDistances.values().stream().max(Integer::compareTo).get();
     }
 
-    // Leacock-Chodorow distance = -log (path_length / (2 * D))
+    // Leacock-Chodorow similarity = -log (path_length / (2 * D))
     private double computeLeacockChodorow(OWLClass a, OWLClass b, Map<OWLClass, Map<OWLClass, Integer>> nodeDistances) {
-        return -Math.log10(nodeDistances.get(a).get(b) / (2 * hierarchyDepth));
+        return -1 * Math.log10(1 + (nodeDistances.get(a).get(b) / (2 * hierarchyDepth)));
     }
 
     private Graph<OWLClass, DefaultEdge> buildConceptHierarchy() throws IOException {
         Graph<OWLClass, DefaultEdge> conceptHierarchy =
-                new SimpleDirectedGraph<>(DefaultEdge.class);
+                new SimpleGraph<>(DefaultEdge.class);
         Queue<OWLClass> classQueue = new LinkedList<>();
         OWLClass topNode = reasoner.getTopClassNode().getRepresentativeElement();
         classQueue.add(topNode);
