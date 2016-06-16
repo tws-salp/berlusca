@@ -18,14 +18,26 @@ import java.util.logging.Logger;
 public abstract class TripleCorrupter {
     protected OWLOntology ontology;
     protected OWLReasoner reasoner;
+    protected TripleIndexer indexer;
     protected final Random randomTripleGenerator;
     protected final Logger logger = Logger.getLogger(TripleCorrupter.class.getName());
     protected final int RANDOM_SEED = 12345;
+    protected final String ONTOLOGY_FILETYPE = "RDF/XML";
 
-    public TripleCorrupter(File ontologyFile) throws OWLOntologyCreationException {
+    public TripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
         logger.info("-- Loading ontology: " + ontologyFile.getAbsolutePath());
         ontology = OWLManager.createOWLOntologyManager().loadOntology(
                 IRI.create(ontologyFile));
+
+        logger.info("-- Building indexes");
+        indexer = new TripleIndexer();
+        indexer.buildIndexes(ontologyFile.getAbsolutePath(), ONTOLOGY_FILETYPE);
+        String filename = ontologyFile.getAbsolutePath();
+        if (filename.indexOf(".") > 0)
+            filename = filename.substring(0, filename.lastIndexOf("."));
+        filename += ".csv";
+        logger.info("-- Saving indexes to file: " + filename);
+        indexer.saveIndexesCsv(filename, ',');
 
         logger.info("-- Initializing reasoner");
         OWLReasonerConfiguration config = new SimpleConfiguration(50000);
@@ -38,8 +50,17 @@ public abstract class TripleCorrupter {
     public List<Triple> corrupt(Triple triple, int numCorrupted) {
         List<Triple> triples = new ArrayList<>();
 
+        triple.subject = indexer.getId2entity().get(Long.parseLong(triple.subject));
+        triple.predicate = indexer.getId2relation().get(Long.parseLong(triple.predicate));
+        triple.object = indexer.getId2entity().get(Long.parseLong(triple.object));
+
         for (int i = 0; i < numCorrupted; i++) {
-            triples.add(corrupt(triple, randomTripleGenerator.nextBoolean()));
+            Triple t = corrupt(triple, randomTripleGenerator.nextBoolean());
+            Triple t_id = new Triple();
+            t_id.subject = String.valueOf(indexer.getEntity2id().get(t.subject));
+            t_id.predicate = String.valueOf(indexer.getRelation2id().get(t.predicate));
+            t_id.object = String.valueOf(indexer.getEntity2id().get(t.object));
+            triples.add(t_id);
         }
 
         return triples;

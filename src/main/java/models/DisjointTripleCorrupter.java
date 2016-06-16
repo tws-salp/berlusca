@@ -10,6 +10,7 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import uk.ac.manchester.cs.owl.owlapi.OWLNamedIndividualImpl;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -29,7 +30,7 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
     private Multimap<OWLClass, OWLClass> disjointClasses;
 
 
-    DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException {
+    DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
         super(ontologyFile);
 
         this.randomEntityGenerator = new Random(RANDOM_SEED);
