@@ -18,27 +18,11 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 public class DisjointTripleCorrupter extends TripleCorrupter {
-    private final Random randomEntityGenerator;
-
-    // Maps individuals to most specific classes
-    private Multimap<OWLNamedIndividual, OWLClass> individualsClasses;
-
-    // Maps classes to individuals
-    private Multimap<OWLClass, OWLNamedIndividual> classesIndividuals;
-
     // Maps classes to disjoint classes
     private Multimap<OWLClass, OWLClass> disjointClasses;
 
-
     DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
         super(ontologyFile);
-
-        this.randomEntityGenerator = new Random(RANDOM_SEED);
-        logger.info("-- Building individuals to classes index");
-        buildIndividualsClasses();
-
-        logger.info("-- Building classes to individuals index");
-        buildClassesIndividuals();
 
         logger.info("-- Building disjoint classes index");
         buildDisjointClasses();
@@ -75,55 +59,9 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
                     corruptedTriple.object = corruptedEntity.getIRI().toString();
                 }
             }
-
         }
 
         return (corruptedTriple == null) ? generateRandomTriple(triple, iriIndividual, corruptSubject) : corruptedTriple;
-    }
-
-    private Triple generateRandomTriple(Triple triple, OWLNamedIndividual iriIndividual, boolean corruptSubject) {
-        Triple corruptedTriple = new Triple();
-        List<OWLNamedIndividual> ontologyIndividuals = new ArrayList<>(individualsClasses.keySet());
-
-        if (corruptSubject) {
-
-            OWLNamedIndividual corruptedEntity;
-            do {
-                corruptedEntity = ontologyIndividuals.get(randomEntityGenerator.nextInt(ontologyIndividuals.size()));
-            } while (corruptedEntity.equals(iriIndividual));
-
-            corruptedTriple.subject = corruptedEntity.getIRI().toString();
-            corruptedTriple.predicate = triple.predicate;
-            corruptedTriple.object = triple.object;
-        } else {
-            OWLNamedIndividual corruptedEntity;
-            do {
-                corruptedEntity = ontologyIndividuals.get(randomEntityGenerator.nextInt(ontologyIndividuals.size()));
-            } while (corruptedEntity.equals(iriIndividual));
-
-            corruptedTriple.subject = triple.subject;
-            corruptedTriple.predicate = triple.predicate;
-            corruptedTriple.object = corruptedEntity.getIRI().toString();
-        }
-
-        return corruptedTriple;
-    }
-
-    private void buildIndividualsClasses() {
-        individualsClasses = HashMultimap.create();
-        for (OWLClass currentClass: ontology.getClassesInSignature()) {
-            for (OWLNamedIndividual currentIndividual:
-                    reasoner.getInstances(currentClass, false).getFlattened()) {
-                individualsClasses.put(currentIndividual, currentClass);
-            }
-        }
-    }
-
-    private void buildClassesIndividuals() {
-        classesIndividuals = HashMultimap.create();
-        for (OWLClass owlClass: ontology.getClassesInSignature()) {
-            classesIndividuals.putAll(owlClass, reasoner.getInstances(owlClass, false).getFlattened());
-        }
     }
 
     private void buildDisjointClasses() {
@@ -134,5 +72,4 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
                     collect(Collectors.toList()));
         }
     }
-
 }

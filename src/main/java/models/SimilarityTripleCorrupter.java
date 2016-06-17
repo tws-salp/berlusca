@@ -3,6 +3,7 @@ package models;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import controllers.data.Triple;
+import org.apache.jena.base.Sys;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.FloydWarshallShortestPaths;
@@ -19,24 +20,16 @@ import java.io.*;
 import java.util.*;
 
 public class SimilarityTripleCorrupter extends TripleCorrupter {
-    private final Random randomEntityGenerator;
     private final Map<OWLClass, Map<OWLClass, Double>> nodesLCDistances;
     private Graph<OWLClass, DefaultEdge> conceptHierarchy;
     private double hierarchyDepth;
-    // Maps classes to individuals
-    private Multimap<OWLClass, OWLNamedIndividual> classesIndividuals;
 
     public SimilarityTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
         super(ontologyFile);
-        this.randomEntityGenerator = new Random(RANDOM_SEED);
         this.conceptHierarchy = buildConceptHierarchy();
         Map<OWLClass, Map<OWLClass, Integer>> nodeDistances = computeNodeDistances();
         this.hierarchyDepth = computeHierarchyDepth(nodeDistances);
         this.nodesLCDistances = computeLeacockChodorowSimilarities(nodeDistances);
-
-        logger.info("-- Building classes to individuals index");
-        buildClassesIndividuals();
-
     }
 
     private Map<OWLClass, Map<OWLClass, Double>> computeLeacockChodorowSimilarities(
@@ -64,42 +57,55 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         OWLNamedIndividual iriIndividual = (corruptSubject) ?
                 new OWLNamedIndividualImpl(IRI.create(triple.subject)) :
                 new OWLNamedIndividualImpl(IRI.create(triple.object));
-        Triple corruptedTriple;
+        Triple corruptedTriple = null;
         OWLClass individualClass = null,
                 nearestClass = null;
 
-        for (OWLClass owlClass : reasoner.getTypes(iriIndividual, true).getFlattened()) {
-            individualClass = owlClass;
-        }
+        try {
 
-        Map<OWLClass, Double> individualSimilarities = nodesLCDistances.get(individualClass);
+            final NodeSet<OWLClass> individualTypes = reasoner.getTypes(iriIndividual, true);
 
-        for (OWLClass c : individualSimilarities.keySet()) {
-            if (nearestClass != null) {
-                if (individualSimilarities.get(nearestClass) > individualSimilarities.get(c)) {
-                    nearestClass = c;
+            if (individualTypes != null && !individualTypes.isEmpty()) {
+
+                for (OWLClass owlClass : individualTypes.getFlattened()) {
+                    individualClass = owlClass;
                 }
-            } else {
-                nearestClass = c;
+
+                Map<OWLClass, Double> individualSimilarities = nodesLCDistances.get(individualClass);
+
+                if (individualSimilarities != null && !individualSimilarities.isEmpty()) {
+
+                    for (OWLClass c : individualSimilarities.keySet()) {
+                        if (nearestClass != null) {
+                            if (individualSimilarities.get(nearestClass) > individualSimilarities.get(c)) {
+                                nearestClass = c;
+                            }
+                        } else {
+                            nearestClass = c;
+                        }
+                    }
+
+                    List<OWLNamedIndividual> corruptedIndividuals = new ArrayList<>(classesIndividuals.get(nearestClass));
+
+                    OWLNamedIndividual corruptedEntity = corruptedIndividuals.get(
+                            randomEntityGenerator.nextInt(corruptedIndividuals.size()));
+                    corruptedTriple = new Triple();
+                    if (corruptSubject) {
+                        corruptedTriple.subject = corruptedEntity.getIRI().toString();
+                        corruptedTriple.predicate = triple.predicate;
+                        corruptedTriple.object = triple.object;
+                    } else {
+                        corruptedTriple.subject = triple.subject;
+                        corruptedTriple.predicate = triple.predicate;
+                        corruptedTriple.object = corruptedEntity.getIRI().toString();
+                    }
+                }
             }
+        } catch (Exception e) {
+            logger.warning("Reasoner error: unable to execute getTypes!");
         }
 
-        List<OWLNamedIndividual> corruptedIndividuals = new ArrayList<>(classesIndividuals.get(nearestClass));
-
-        OWLNamedIndividual corruptedEntity = corruptedIndividuals.get(
-                randomEntityGenerator.nextInt(corruptedIndividuals.size()));
-        corruptedTriple = new Triple();
-        if (corruptSubject) {
-            corruptedTriple.subject = corruptedEntity.getIRI().toString();
-            corruptedTriple.predicate = triple.predicate;
-            corruptedTriple.object = triple.object;
-        } else {
-            corruptedTriple.subject = triple.subject;
-            corruptedTriple.predicate = triple.predicate;
-            corruptedTriple.object = corruptedEntity.getIRI().toString();
-        }
-
-        return corruptedTriple;
+        return (corruptedTriple == null) ? generateRandomTriple(triple, iriIndividual, corruptSubject) : corruptedTriple;
     }
 
 
@@ -174,12 +180,5 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
         }
 
         return conceptHierarchy;
-    }
-
-    private void buildClassesIndividuals() {
-        classesIndividuals = HashMultimap.create();
-        for (OWLClass owlClass : ontology.getClassesInSignature()) {
-            classesIndividuals.putAll(owlClass, reasoner.getInstances(owlClass, false).getFlattened());
-        }
     }
 }
