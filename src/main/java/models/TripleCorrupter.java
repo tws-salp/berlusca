@@ -2,7 +2,10 @@ package models;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 import controllers.data.Triple;
+import org.apache.jena.base.Sys;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.*;
@@ -18,7 +21,6 @@ import java.util.logging.Logger;
 public abstract class TripleCorrupter {
     protected OWLOntology ontology;
     protected OWLReasoner reasoner;
-    protected TripleIndexer indexer;
     protected final Random randomTripleGenerator;
     protected final Random randomEntityGenerator;
     // Maps individuals to most specific classes
@@ -27,22 +29,12 @@ public abstract class TripleCorrupter {
     protected Multimap<OWLClass, OWLNamedIndividual> classesIndividuals;
     protected final Logger logger = Logger.getLogger(TripleCorrupter.class.getName());
     protected final int RANDOM_SEED = 12345;
-    protected final String ONTOLOGY_FILETYPE = "RDF/XML";
+
 
     public TripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
         logger.info("-- Loading ontology: " + ontologyFile.getAbsolutePath());
         ontology = OWLManager.createOWLOntologyManager().loadOntology(
                 IRI.create(ontologyFile));
-
-        logger.info("-- Building indexes");
-        indexer = new TripleIndexer();
-        indexer.buildIndexes(ontologyFile.getAbsolutePath(), ONTOLOGY_FILETYPE);
-        /*String filename = ontologyFile.getAbsolutePath();
-        if (filename.indexOf(".") > 0)
-            filename = filename.substring(0, filename.lastIndexOf("."));
-        filename += ".csv";
-        logger.info("-- Saving indexes to file: " + filename);
-        indexer.saveIndexesCsv(filename, ',');*/
 
         logger.info("-- Initializing reasoner");
         OWLReasonerConfiguration config = new SimpleConfiguration(50000);
@@ -59,7 +51,7 @@ public abstract class TripleCorrupter {
         buildClassesIndividuals();
     }
 
-    public List<Triple> corrupt(Triple triple, int numCorrupted) {
+    public List<Triple> corrupt(Triple triple, int numCorrupted, TripleIndexer indexer) {
         List<Triple> triples = new ArrayList<>();
 
         triple.subject = indexer.getId2entity().get(Long.parseLong(triple.subject));

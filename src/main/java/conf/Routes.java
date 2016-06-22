@@ -28,6 +28,10 @@ public class Routes implements ApplicationRoutes {
     public void init(Router router) {
         router.GET().route("/").with(ApplicationController.class, "index");
         router.POST().route("/corrupted").with(ApplicationController.class, "corrupted");
+        router.GET().route("/entity/id").with(ApplicationController.class, "entityURI2id");
+        router.GET().route("/entity/uri").with(ApplicationController.class, "entityId2URI");
+        router.GET().route("/relation/id").with(ApplicationController.class, "relationURI2id");
+        router.GET().route("/relation/uri").with(ApplicationController.class, "relationId2URI");
 
         ///////////////////////////////////////////////////////////////////////
         // Assets (pictures / javascript)
