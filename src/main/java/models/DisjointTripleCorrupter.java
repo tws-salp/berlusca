@@ -2,7 +2,6 @@ package models;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.inject.Inject;
 import controllers.data.Triple;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -15,11 +14,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
+/**
+ * Class which represents a TripleCorrupter using Disjoint strategy.
+ */
 public class DisjointTripleCorrupter extends TripleCorrupter {
-    // Maps classes to disjoint classes
     private Multimap<OWLClass, OWLClass> disjointClasses;
 
     DisjointTripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
@@ -67,7 +67,7 @@ public class DisjointTripleCorrupter extends TripleCorrupter {
 
     private void buildDisjointClasses() {
         disjointClasses = HashMultimap.create();
-        for (OWLClass currentClass: ontology.getClassesInSignature()) {
+        for (OWLClass currentClass : ontology.getClassesInSignature()) {
             disjointClasses.putAll(currentClass, ontology.classesInSignature().
                     filter(c -> !reasoner.getSuperClasses(currentClass).getFlattened().contains(c) && !currentClass.equals(c)).
                     collect(Collectors.toList()));

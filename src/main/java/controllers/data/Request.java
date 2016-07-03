@@ -2,6 +2,15 @@ package controllers.data;
 
 import java.util.List;
 
+/**
+ * Class which represents a request received by a client.
+ * <p>
+ * The request is composed by the following parameters:
+ * <ul>
+ * <li>List of triples to be corrupted</li>
+ * <li>Number of corrupted triples for each input triple</li>
+ * </ul>
+ */
 public class Request {
     public List<Triple> triples;
     public int size;
