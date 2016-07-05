@@ -2,25 +2,37 @@ package conf;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import models.TripleCorrupter;
-import models.TripleCorrupterType;
 import models.TripleIndexer;
 import ninja.utils.NinjaProperties;
-import org.apache.jena.base.Sys;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Class which represents a provider used to generate an instance of TripleIndexer.
+ */
 public class TripleIndexerProvider implements Provider<TripleIndexer> {
-
     private final NinjaProperties properties;
 
+    /**
+     * Constructor which receives a NinjaProperties object which must contain the following parameters:
+     * <ul>
+     * <li>application.entity_mappings_filename: filename of entity mappings</li>
+     * <li>application.relation_mappings_filename: filename of relation mappings</li>
+     * </ul>
+     *
+     * @param properties Configuration parameters
+     */
     @Inject
     public TripleIndexerProvider(NinjaProperties properties) {
         this.properties = properties;
     }
 
+    /**
+     * Creates a TripleIndexer instance using the given parameters.
+     *
+     * @return TripleIndexer instance if it was created correctly, null otherwise
+     */
     @Override
     public TripleIndexer get() {
         try {

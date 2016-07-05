@@ -1,10 +1,6 @@
 package models;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.inject.Inject;
 import controllers.data.Triple;
-import org.apache.jena.base.Sys;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.FloydWarshallShortestPaths;
@@ -17,9 +13,13 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.reasoner.NodeSet;
 import uk.ac.manchester.cs.owl.owlapi.OWLNamedIndividualImpl;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
+/**
+ * Class which represents a TripleCorrupter using Similarity strategy.
+ */
 public class SimilarityTripleCorrupter extends TripleCorrupter {
     private final Map<OWLClass, Map<OWLClass, Double>> nodesLCDistances;
     private Graph<OWLClass, DefaultEdge> conceptHierarchy;
@@ -63,11 +63,9 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
                 nearestClass = null;
 
         try {
-
             final NodeSet<OWLClass> individualTypes = reasoner.getTypes(iriIndividual, true);
 
             if (individualTypes != null && !individualTypes.isEmpty()) {
-
                 for (OWLClass owlClass : individualTypes.getFlattened()) {
                     individualClass = owlClass;
                 }
@@ -75,7 +73,6 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
                 Map<OWLClass, Double> individualSimilarities = nodesLCDistances.get(individualClass);
 
                 if (individualSimilarities != null && !individualSimilarities.isEmpty()) {
-
                     for (OWLClass c : individualSimilarities.keySet()) {
                         if (nearestClass != null) {
                             if (individualSimilarities.get(nearestClass) > individualSimilarities.get(c)) {
@@ -108,7 +105,6 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
 
         return (corruptedTriple == null) ? generateRandomTriple(triple, iriIndividual, corruptSubject) : corruptedTriple;
     }
-
 
     private Map<OWLClass, Map<OWLClass, Integer>> computeNodeDistances() {
         Map<OWLClass, Map<OWLClass, Integer>> distances = new HashMap<>();
@@ -144,6 +140,7 @@ public class SimilarityTripleCorrupter extends TripleCorrupter {
     }
 
     // Leacock-Chodorow similarity = -log (path_length / (2 * D))
+    // We sum 1 to the argument of the logarithm to avoid zero logarithm
     private double computeLeacockChodorow(OWLClass a, OWLClass b, Map<OWLClass, Map<OWLClass, Integer>> nodeDistances) {
         return -1 * Math.log10(1 + (nodeDistances.get(a).get(b) / (2 * hierarchyDepth)));
     }

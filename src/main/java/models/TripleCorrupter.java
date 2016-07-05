@@ -2,10 +2,7 @@ package models;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.inject.Inject;
-import com.google.inject.Provider;
 import controllers.data.Triple;
-import org.apache.jena.base.Sys;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.*;
@@ -18,19 +15,26 @@ import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
 
+/**
+ * Abstract class which represents a TripleCorrupter.
+ */
 public abstract class TripleCorrupter {
     protected OWLOntology ontology;
     protected OWLReasoner reasoner;
     protected final Random randomTripleGenerator;
     protected final Random randomEntityGenerator;
-    // Maps individuals to most specific classes
     protected Multimap<OWLNamedIndividual, OWLClass> individualsClasses;
-    // Maps classes to individuals
     protected Multimap<OWLClass, OWLNamedIndividual> classesIndividuals;
     protected final Logger logger = Logger.getLogger(TripleCorrupter.class.getName());
     protected final int RANDOM_SEED = 12345;
 
-
+    /**
+     * Constructor which receives an ontology file to read the ontology and instantiate the reasoner.
+     *
+     * @param ontologyFile Ontology file to be read
+     * @throws OWLOntologyCreationException Exception raised if the ontology cannot be parsed
+     * @throws IOException Exception raised if the file cannot be read
+     */
     public TripleCorrupter(File ontologyFile) throws OWLOntologyCreationException, IOException {
         logger.info("-- Loading ontology: " + ontologyFile.getAbsolutePath());
         ontology = OWLManager.createOWLOntologyManager().loadOntology(
@@ -42,8 +46,8 @@ public abstract class TripleCorrupter {
         reasoner = reasonerFactory.createReasoner(ontology, config);
         reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
         this.randomTripleGenerator = new Random(RANDOM_SEED);
-
         this.randomEntityGenerator = new Random(RANDOM_SEED);
+
         logger.info("-- Building individuals to classes index");
         buildIndividualsClasses();
 
@@ -51,9 +55,16 @@ public abstract class TripleCorrupter {
         buildClassesIndividuals();
     }
 
+    /**
+     * Corrupts the given triple generating numCorrupted triples considering the given indexer.
+     *
+     * @param triple Triple to be corrupted
+     * @param numCorrupted Number of corrupted triples to be generated
+     * @param indexer Mapping between URIs and integer identifiers
+     * @return List of corrupted triples
+     */
     public List<Triple> corrupt(Triple triple, int numCorrupted, TripleIndexer indexer) {
         List<Triple> triples = new ArrayList<>();
-
         triple.subject = indexer.getId2entity().get(Long.parseLong(triple.subject));
         triple.predicate = indexer.getId2relation().get(Long.parseLong(triple.predicate));
         triple.object = indexer.getId2entity().get(Long.parseLong(triple.object));
@@ -70,8 +81,24 @@ public abstract class TripleCorrupter {
         return triples;
     }
 
+    /**
+     * Generates a corrupted triple given a triple and a boolean flag which defines which part to corrupt.
+     *
+     * @param triple Triple to be corrupted
+     * @param corruptSubject True corrupts the subject, False corrupts the object
+     * @return Corrupted triple
+     */
     protected abstract Triple corrupt(Triple triple, boolean corruptSubject);
 
+    /**
+     * Factory method to instantiate the requested triple corrupter.
+     *
+     * @param ontologyFile Ontology file to be read
+     * @param tripleCorrupterType Identifier of the triple corrupter
+     * @return Requested triple corrupter
+     * @throws OWLOntologyCreationException Exception raised if the ontology cannot be parsed
+     * @throws IOException Exception raised if the file cannot be read
+     */
     public static TripleCorrupter create(File ontologyFile, TripleCorrupterType tripleCorrupterType)
             throws OWLOntologyCreationException, IOException {
         switch (tripleCorrupterType) {
@@ -84,6 +111,14 @@ public abstract class TripleCorrupter {
         }
     }
 
+    /**
+     * Generated a corrupted triple using random sampling.
+     *
+     * @param triple Triple to be corrupted
+     * @param iriIndividual Entity to be corrupted
+     * @param corruptSubject True corrupts the subject, False corrupts the object
+     * @return Corrupted triple
+     */
     protected Triple generateRandomTriple(Triple triple, OWLNamedIndividual iriIndividual, boolean corruptSubject) {
         Triple corruptedTriple = new Triple();
         List<OWLNamedIndividual> ontologyIndividuals = new ArrayList<>(individualsClasses.keySet());
@@ -112,6 +147,9 @@ public abstract class TripleCorrupter {
         return corruptedTriple;
     }
 
+    /**
+     * Builds mapping between individuals and their classes.
+     */
     private void buildIndividualsClasses() {
         individualsClasses = HashMultimap.create();
         for (OWLClass currentClass: ontology.getClassesInSignature()) {
@@ -122,11 +160,13 @@ public abstract class TripleCorrupter {
         }
     }
 
+    /**
+     * Builds mapping between classes and their individuals.
+     */
     private void buildClassesIndividuals() {
         classesIndividuals = HashMultimap.create();
         for (OWLClass owlClass: ontology.getClassesInSignature()) {
             classesIndividuals.putAll(owlClass, reasoner.getInstances(owlClass, false).getFlattened());
         }
     }
-
 }
